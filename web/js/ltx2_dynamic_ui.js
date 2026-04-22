@@ -7,11 +7,13 @@ app.registerExtension({
         if (nodeData.name === "LTX2MasterLoaderLD") {
             
             nodeType.prototype.onNodeCreated = function () {
-                this.size = [800, 500]; // Augmenté un peu pour le bouton
+                // AUGMENTÉ : Hauteur passée à 850 pour accommoder 20 lignes
+                this.size = [850, 850]; 
                 this.properties = this.properties || {};
                 if (!this.properties.stack_data) {
                     let initial = [];
-                    for(let i=0; i<10; i++) initial.push({ on: true, lora: "None", guard: false, strength: 1.0 });
+                    // PASSÉ À 20 : Initialisation des données
+                    for(let i=0; i<20; i++) initial.push({ on: true, lora: "None", guard: false, strength: 1.0 });
                     this.properties.stack_data = JSON.stringify(initial);
                 }
 
@@ -32,21 +34,19 @@ app.registerExtension({
                 const width = this.size[0];
                 const height = this.size[1];
 
-                // --- LOGIQUE DU BOUTON REFRESH ---
-                // Zone du bouton : En haut, à droite par exemple
                 if (y > 10 && y < 40 && x > width - 160 && x < width - 10) {
                     this.refreshLoras();
                     return true;
                 }
 
                 const data = JSON.parse(this.properties.stack_data);
-                const rowHeight = (height - 80) / 10; // Ajusté pour le décalage du bouton
+                // AJUSTÉ : On divise par 20 au lieu de 10
+                const rowHeight = (height - 80) / 20; 
 
-                for (let i = 0; i < 10; i++) {
-                    const rowY = 70 + (i * rowHeight); // Décalé vers le bas
+                for (let i = 0; i < 20; i++) {
+                    const rowY = 70 + (i * rowHeight); 
                     if (y > rowY - 15 && y < rowY + 15) {
                         if (x > 85 && x < width - 280) {
-                            // On récupère la liste depuis nodeData qui est mis à jour
                             const loraList = nodeData.input.hidden.available_loras[0];
                             const menu = new LiteGraph.ContextMenu(loraList, {
                                 event: e, scale: 1.2,
@@ -57,7 +57,7 @@ app.registerExtension({
                                     this.setDirtyCanvas(true);
                                 }
                             });
-                            // ... (votre logique de recherche reste identique) ...
+                            
                             const searchWrapper = document.createElement("div");
                             searchWrapper.style = "padding: 5px; background: #333; border-bottom: 1px solid #555;";
                             const input = document.createElement("input");
@@ -92,12 +92,9 @@ app.registerExtension({
                 }
             };
 
-            // Fonction pour forcer le rafraîchissement
             nodeType.prototype.refreshLoras = async function() {
                 console.log("Refreshing LoRAs...");
-                // On demande au serveur de rescanner les dossiers
                 await api.fetchApi("/object_info", { method: "GET" }); 
-                // Dans ComfyUI, modifier nodeData.input.hidden met à jour les références pour les prochains clics
                 const response = await fetch('/object_info');
                 const info = await response.json();
                 if (info[nodeData.name]) {
@@ -112,7 +109,6 @@ app.registerExtension({
                 const width = this.size[0];
                 const height = this.size[1];
                 
-                // Dessin du bouton Refresh
                 ctx.fillStyle = "#333";
                 ctx.fillRect(width - 160, 10, 150, 30);
                 ctx.fillStyle = "#EEE";
@@ -121,13 +117,17 @@ app.registerExtension({
                 ctx.fillText("🔄 REFRESH LORAS", width - 85, 30);
                 ctx.textAlign = "left";
 
-                const rowHeight = (height - 80) / 10;
+                // AJUSTÉ : On divise par 20
+                const rowHeight = (height - 80) / 20; 
                 syncToBackend(this);
 
                 ctx.font = "bold 13px Arial";
-                for (let i = 0; i < 10; i++) {
+                // PASSÉ À 20 : Dessin des lignes
+                for (let i = 0; i < 20; i++) {
                     const y = 70 + (i * rowHeight);
                     const row = data[i];
+                    if(!row) continue; // Sécurité si les données ne sont pas encore prêtes
+
                     ctx.fillStyle = i % 2 === 0 ? "#1a1a1a" : "#222222";
                     ctx.fillRect(5, y-rowHeight/2, width-10, rowHeight-2);
                     
@@ -135,7 +135,8 @@ app.registerExtension({
                     ctx.fillText(row.on ? "✔ ON" : "✖ OFF", 15, y+5);
                     
                     ctx.fillStyle = row.lora === "None" ? "#555" : "#DDD";
-                    ctx.fillText(row.lora.split(/[\\/]/).pop().substring(0, 40), 90, y+5);
+                    // Limité à 60 caractères pour profiter de la largeur
+                    ctx.fillText(row.lora.split(/[\\/]/).pop().substring(0, 60), 90, y+5);
                     
                     ctx.fillStyle = row.guard ? "#2196F3" : "#555";
                     ctx.fillText(row.guard ? "🔊" : "🔇", width - 225, y+5);
